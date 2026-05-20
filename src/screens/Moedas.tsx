@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import NeumorphicView from '../../components/NeumorphicView';
+import React, { useState } from 'react';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { RootStackParamList } from '../app/index';
+import NeumorphicView from '../components/NeumorphicView';
 
 type MoedasScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Moedas'>;
 

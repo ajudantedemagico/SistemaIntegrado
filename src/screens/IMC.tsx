@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert } from 'react-native';
-import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
-import db from '../database/db';
-import NeumorphicView from '../components/NeumorphicView';
+import { StackNavigationProp } from '@react-navigation/stack';
+import React, { useEffect, useState } from 'react';
+import { Alert, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { RootStackParamList } from '../app/index';
+import NeumorphicView from '../components/NeumorphicView';
+import { getAllAsync, runAsync } from '../database/db';
 
 type IMCScreenRouteProp = RouteProp<RootStackParamList, 'IMC'>;
 type IMCScreenNavigationProp = StackNavigationProp<RootStackParamList, 'IMC'>;
@@ -27,23 +27,21 @@ export default function IMC({ route, navigation }: Props) {
   const [altura, setAltura] = useState<string>('');
   const [historico, setHistorico] = useState<HistoricoIMC[]>([]);
 
+  const carregarHistorico = useCallback(async () => {
+    const rows = await getAllAsync<HistoricoIMC>(
+      'SELECT * FROM imc_history WHERE userId = ? ORDER BY id DESC',
+      userId
+    );
+    setHistorico(rows);
+  }, [userId]);
+
   useEffect(() => {
-    carregarHistorico();
-  }, []);
-
-  const carregarHistorico = () => {
-    db.transaction((tx: any) => {
-      tx.executeSql(
-        'SELECT * FROM imc_history WHERE userId = ? ORDER BY id DESC',
-        [userId],
-        (_: any, { rows }: any) => {
-          setHistorico(rows._array);
-        }
-      );
+    carregarHistorico().catch(() => {
+      Alert.alert('Erro', 'Falha ao carregar histórico de IMC.');
     });
-  };
+  }, [carregarHistorico]);
 
-  const calcularIMC = () => {
+  const calcularIMC = async () => {
     const p = parseFloat(peso);
     const a = parseFloat(altura);
 
@@ -55,18 +53,20 @@ export default function IMC({ route, navigation }: Props) {
     const imc = (p / (a * a)).toFixed(2);
     const dataAtual = new Date().toLocaleDateString('pt-BR');
 
-    db.transaction((tx: any) => {
-      tx.executeSql(
+    try {
+      await runAsync(
         'INSERT INTO imc_history (userId, imc, date) VALUES (?, ?, ?)',
-        [userId, parseFloat(imc), dataAtual],
-        () => {
-          Alert.alert('Resultado', `Seu IMC é: ${imc}`);
-          carregarHistorico();
-          setPeso('');
-          setAltura('');
-        }
+        userId,
+        parseFloat(imc),
+        dataAtual
       );
-    });
+      Alert.alert('Resultado', `Seu IMC é: ${imc}`);
+      await carregarHistorico();
+      setPeso('');
+      setAltura('');
+    } catch {
+      Alert.alert('Erro', 'Falha ao salvar o IMC.');
+    }
   };
 
   return (

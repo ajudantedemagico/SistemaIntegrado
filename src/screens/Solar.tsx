@@ -1,8 +1,8 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import NeumorphicView from '../../components/NeumorphicView';
+import React from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { RootStackParamList } from '../app/index';
+import NeumorphicView from '../components/NeumorphicView';
 
 type SolarScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Solar'>;
 

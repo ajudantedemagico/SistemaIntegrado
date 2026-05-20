@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert } from 'react-native';
-import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
-import db from '../database/db';
-import NeumorphicView from '../components/NeumorphicView';
+import { StackNavigationProp } from '@react-navigation/stack';
+import React, { useEffect, useState } from 'react';
+import { Alert, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { RootStackParamList } from '../app/index';
+import NeumorphicView from '../components/NeumorphicView';
+import { getAllAsync, runAsync } from '../database/db';
 
 type PedidosScreenRouteProp = RouteProp<RootStackParamList, 'Pedidos'>;
 type PedidosScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Pedidos'>;
@@ -26,38 +26,38 @@ export default function Pedidos({ route, navigation }: Props) {
   const [pedido, setPedido] = useState<string>('');
   const [historicoPedidos, setHistoricoPedidos] = useState<HistoricoPedido[]>([]);
 
+  const carregarPedidos = useCallback(async () => {
+    const rows = await getAllAsync<HistoricoPedido>(
+      'SELECT * FROM orders_history WHERE userId = ? ORDER BY id DESC',
+      userId
+    );
+    setHistoricoPedidos(rows);
+  }, [userId]);
+
   useEffect(() => {
-    carregarPedidos();
-  }, []);
-
-  const carregarPedidos = () => {
-    db.transaction((tx: any) => {
-      tx.executeSql(
-        'SELECT * FROM orders_history WHERE userId = ? ORDER BY id DESC',
-        [userId],
-        (_: any, { rows }: any) => {
-          setHistoricoPedidos(rows._array);
-        }
-      );
+    carregarPedidos().catch(() => {
+      Alert.alert('Erro', 'Falha ao carregar pedidos.');
     });
-  };
+  }, [carregarPedidos]);
 
-  const adicionarPedido = () => {
+  const adicionarPedido = async () => {
     if (pedido.trim() === '') return;
 
     const dataAtual = new Date().toLocaleDateString('pt-BR');
 
-    db.transaction((tx: any) => {
-      tx.executeSql(
+    try {
+      await runAsync(
         'INSERT INTO orders_history (userId, order_details, date) VALUES (?, ?, ?)',
-        [userId, pedido, dataAtual],
-        () => {
-          Alert.alert('Sucesso', 'Pedido registrado!');
-          setPedido('');
-          carregarPedidos();
-        }
+        userId,
+        pedido,
+        dataAtual
       );
-    });
+      Alert.alert('Sucesso', 'Pedido registrado!');
+      setPedido('');
+      await carregarPedidos();
+    } catch {
+      Alert.alert('Erro', 'Falha ao salvar o pedido.');
+    }
   };
 
   return (

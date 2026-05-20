@@ -9,6 +9,15 @@ import { ThemedView } from '@/components/themed-view';
 import { WebBadge } from '@/components/web-badge';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 
+export type RootStackParamList = {
+  Login: undefined;
+  Home: { username: string; userId: number };
+  IMC: { userId: number };
+  Moedas: undefined;
+  Solar: undefined;
+  Pedidos: { userId: number };
+};
+
 function getDevMenuHint() {
   if (Platform.OS === 'web') {
     return <ThemedText type="small">use browser devtools</ThemedText>;

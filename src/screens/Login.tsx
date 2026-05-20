@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import db, { initDB } from '../database/db';
-import NeumorphicView from '../components/NeumorphicView';
+import React, { useEffect, useState } from 'react';
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { RootStackParamList } from '../app/index';
+import NeumorphicView from '../components/NeumorphicView';
+import { getFirstAsync, initDB, runAsync } from '../database/db';
 
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
 
@@ -16,38 +16,36 @@ export default function Login({ navigation }: Props) {
   const [password, setPassword] = useState<string>('');
 
   useEffect(() => {
-    initDB();
+    initDB().catch(() => {
+      Alert.alert('Erro', 'Falha ao inicializar o banco de dados.');
+    });
   }, []);
 
-  const handleLogin = () => {
-    db.transaction((tx: any) => {
-      tx.executeSql(
-        'SELECT * FROM users WHERE username = ? AND password = ?',
-        [username, password],
-        (_: any, { rows }: any) => {
-          const result = rows;
-          if (result.length > 0) {
-            navigation.replace('Home', { userId: result._array[0].id, username });
-          } else {
-            Alert.alert('Erro', 'Credenciais inválidas!');
-          }
-        }
+  const handleLogin = async () => {
+    try {
+      const user = await getFirstAsync<{ id: number }>(
+        'SELECT id FROM users WHERE username = ? AND password = ?',
+        username,
+        password
       );
-    });
+
+      if (user) {
+        navigation.replace('Home', { userId: user.id, username });
+      } else {
+        Alert.alert('Erro', 'Credenciais inválidas!');
+      }
+    } catch {
+      Alert.alert('Erro', 'Falha ao buscar usuário.');
+    }
   };
 
-  const handleRegister = () => {
-    db.transaction((tx: any) => {
-      tx.executeSql(
-        'INSERT INTO users (username, password) VALUES (?, ?)',
-        [username, password],
-        () => Alert.alert('Sucesso', 'Conta criada! Faça login.'),
-        (_: any, error: any) => {
-          Alert.alert('Erro', 'Usuário já existe.');
-          return false;
-        }
-      );
-    });
+  const handleRegister = async () => {
+    try {
+      await runAsync('INSERT INTO users (username, password) VALUES (?, ?)', username, password);
+      Alert.alert('Sucesso', 'Conta criada! Faça login.');
+    } catch {
+      Alert.alert('Erro', 'Usuário já existe.');
+    }
   };
 
   return (
